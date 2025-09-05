@@ -3,7 +3,7 @@ An interdigital microstrip bandpass filter with a center frequency of 1240MHz. K
 
 Despite not *technically* being microwave frequency, this microwave structure still applies to S, X, Ku, etc. bands. I used this frequency because I only have a NanoVNA which can measure up to 2GHz.
 
-Skills showcased:
+Skills (that will be) showcased:
 - Microwave Structures
 - Impedence control
 - Stackup management
