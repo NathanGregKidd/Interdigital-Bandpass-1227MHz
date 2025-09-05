@@ -1,0 +1,40 @@
+Run 1:  Wed Jun 25 22:37:01 2025.  SL685cced7.
+        Em version 18.53-Lite (64-bit Windows) on KiddLegion local.
+
+  Project:  C:\Users\natha\OneDrive\Documents\LearningRF\Sonnet\First\First.son.
+
+    Begin electromagnetic simulation using frequency sweep:
+      ABS Start = 4.4, Stop = 5.6 GHZ
+
+    Frequency:  4.4 GHZ
+
+      De-embedded S-Parameters. 50 Ohm Port Terminations.
+      Magnitude/Angle. Touchstone Format. (S11 S21 S12 S22).
+      4.40000000 0.984518 76.850 0.007037 -15.73 0.007037 -15.73 0.984518 76.850
+      ! P1 F=4.4 Eeff=(6.3301 - j0.0256915) Z0=(48.9938 - j0.0797542)
+      ! P2 F=4.4 Eeff=(6.3301 - j0.0256915) Z0=(48.9938 - j0.0797542)
+
+    Frequency:  5.6 GHZ
+      5.60000000 0.969955 163.47 0.001326 65.720 0.001326 65.720 0.969952 163.47
+      ! P1 F=5.6 Eeff=(6.35066 - j0.0225172) Z0=(48.9305 - j0.0667288)
+      ! P2 F=5.6 Eeff=(6.35066 - j0.0225172) Z0=(48.9305 - j0.0667288)
+
+    Frequency:  4.985 GHZ
+      4.98500000 0.070436 -8.596 0.840492 83.870 0.840492 83.870 0.070416 -8.571
+      ! P1 F=4.985 Eeff=(6.33964 - j0.0239318) Z0=(48.9625 - j0.0725671)
+      ! P2 F=4.985 Eeff=(6.33964 - j0.0239318) Z0=(48.9625 - j0.0725671)
+
+    Frequency:  5.255 GHZ
+      5.25500000 0.038475 -27.02 0.765929 166.02 0.765929 166.02 0.038585 -26.92
+      ! P1 F=5.255 Eeff=(6.34436 - j0.0232652) Z0=(48.9482 - j0.0698234)
+      ! P2 F=5.255 Eeff=(6.34436 - j0.0232652) Z0=(48.9482 - j0.0698234)
+
+Em simulation completed Wed Jun 25 22:37:07 2025.
+
+
+Run 2:  Thu Sep 04 07:37:14 2025.  SL685cced7.
+        Em version 18.53-Lite (64-bit Windows) on KiddLegion local.
+
+  Project:  C:\Users\natha\OneDrive\Documents\LearningRF\Sonnet\First\First.son.
+
+Em simulation completed Thu Sep 04 07:37:14 2025.
