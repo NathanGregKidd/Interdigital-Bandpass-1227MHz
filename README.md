@@ -1,6 +1,8 @@
 # Interdigital-Bandpass-1240MHz
 An interdigital microstrip bandpass filter with a center frequency of 1240MHz. Kicad design files, Electromagnetic Simulations, fabrication files, and test data.
 
+Despite not *technically* being microwave frequency, this microwave structure still applies to S, X, Ku, etc. bands. I used this frequency because I only have a NanoVNA which can measure up to 2GHz.
+
 Skills showcased:
 - Microwave Structures
 - Impedence control
