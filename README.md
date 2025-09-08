@@ -3,8 +3,8 @@ An interdigital microstrip bandpass filter with a center frequency of 1227.60MHz
 
 This filter seperates out the L2 signal from L1 and L5 signals coming from GPS transmitters.
 
-### Summary
-This project will showcase my ability to design, fabricate, and test a 1227.6MHz microwave structure. The design stage will start with calculations. Simulations will be done in QUCS (an open-source version of Keysight ADS) and Sonnet Lite (a free 2.5D Method of Moments EM solver). If possible, a free evaluation license will be acquired for ADS and HFSS in order to validate QUCS and Sonnet Lite as well as build skills. The fabrication stage will be done with KiCad and whichever fab-house works the best. Right now I am expecting to use JLCPCB, with FR4 substrate. The testing stage will be done with a NanoVNA (VNA with LO up to 2GHz) and the VNA results will be compared with the simulation results.
+### Objective
+This project will showcase my ability to design, fabricate, and test a 1227.6MHz microwave structure. The design stage will start with calculations. Simulations will be done in QUCS (an open-source version of Keysight ADS) and Sonnet Lite (a free 2.5D Method of Moments EM solver). If possible, a free evaluation license will be acquired for ADS and HFSS in order to validate QUCS and Sonnet Lite as well as build skills. The fabrication stage will be done with KiCad and whichever fab-house works the best. Right now I am expecting to use JLCPCB, with FR4 substrate. A test coupon will also be made to de-embed connector launch effects. The testing stage will be done with a NanoVNA (VNA with LO up to 2GHz) and the VNA results will be compared with the simulation results.
 
 Despite not *technically* being microwave frequency, this microwave structure still applies to S, X, Ku, etc. bands. I used this frequency because I only have a NanoVNA which can measure up to 2GHz. It was also chosen because GPS L2 operates at this carrier.
 
@@ -50,3 +50,12 @@ The bandwidth was chosen on account of the GPS L2 bandwidth. The GPS L2 band is 
 
 ### Filter order
 The filter order was chosen to be 5 because I wanted the filter to be as selective as possible without using too much space. Since in an interdigital filter each digit equates to an additional order, and with each additional order the passband becomes more selective, I wanted as many digits as possible. However, this must be balanced with the fact that more digits means more board space and more cost (at least on something like Rogers substrate). In addition, with more digits and more space there is more risk of higher insertion loss within the passband. Therefore, 5 was chosen because it had
+
+# Test Overview
+- Warm up VNA
+- Perform 2-port calibration (SOLT, TRL if possible)
+- Verify with a known load
+- Measure coupon thru line for de-embedding
+- Measure S11, S21, group delay over 500 - 2000MHz
+- Save touchstone files
+- Results analysis
