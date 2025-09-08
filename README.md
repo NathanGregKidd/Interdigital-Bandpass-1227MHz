@@ -1,4 +1,4 @@
-# ⚡Interdigital-Bandpass-1240MHz
+# ⚡Interdigital-Bandpass-1227.6MHz
 An interdigital microstrip bandpass filter with a center frequency of 1227.60MHz. Kicad design files, Electromagnetic Simulations, fabrication files, and test data. 
 
 This filter seperates out the L2 signal from L1 and L5 signals coming from GPS transmitters.
