@@ -51,7 +51,22 @@ The bandwidth was chosen on account of the GPS L2 bandwidth. The GPS L2 band is 
 ### Filter order
 The filter order was chosen to be 5 because I wanted the filter to be as selective as possible without using too much space. Since in an interdigital filter each digit equates to an additional order, and with each additional order the passband becomes more selective, I wanted as many digits as possible. However, this must be balanced with the fact that more digits means more board space and more cost (at least on something like Rogers substrate). In addition, with more digits and more space there is more risk of higher insertion loss within the passband. Therefore, 5 was chosen because it had
 
-# Test Overview
+# Simulation
+Keysight ADS / QUCS / uSimmics simulation:
+<p align="center">
+  <img width="1176" height="790" alt="image" src="https://github.com/user-attachments/assets/ae4e087e-2946-4c37-93f9-43c235954edc" />
+  <i>The QUCS / uSimmics schematic</i>
+<p align="center">
+  <img width="686" height="378" alt="image" src="https://github.com/user-attachments/assets/86b2cb26-9271-4ee6-8865-d019fd703013" />
+<p align="center">
+  <i>The uSimmics generated geometry for EM field analysis</i>
+</p>
+
+The simulation is not optimized yet. For now, just a baseline geometry has been laid out so that the design parameters can be placed in later. 
+
+
+# Testing Stage
+## Test Overview
 - Warm up VNA
 - Perform 2-port calibration (SOLT, TRL if possible)
 - Verify with a known load
@@ -59,3 +74,4 @@ The filter order was chosen to be 5 because I wanted the filter to be as selecti
 - Measure S11, S21, group delay over 500 - 2000MHz
 - Save touchstone files
 - Results analysis
+
