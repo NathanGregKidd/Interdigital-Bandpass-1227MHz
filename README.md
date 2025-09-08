@@ -21,7 +21,7 @@ Skills (that will be) showcased:
 Design Phase
 - Currently calculating and setting up a baseline geometry for the filter before optimizing in the simulators.
 
-# 🎓 Design Requirements
+# ✅ Design Requirements 📖✏️
 
 | Parameter                        | Value     | Units |
 |----------------------------------|-----------|-------|
