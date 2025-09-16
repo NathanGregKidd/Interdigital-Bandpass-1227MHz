@@ -71,6 +71,20 @@ function geometry = parse_qucs_layout(qucs_file)
                     geometry.bounds = update_bounds(geometry.bounds, conductor);
                 end
                 
+            % Parse coupled microstrip lines (MCOUPLED components)
+            elseif contains(line, 'MCOUPLED')
+                conductors = parse_qucs_mcoupled(line);
+                for j = 1:length(conductors)
+                    if ~isempty(conductors{j})
+                        conductor_count = conductor_count + 1;
+                        conductors{j}.id = conductor_count;
+                        geometry.conductors(end+1) = conductors{j};
+                        
+                        % Update bounding box
+                        geometry.bounds = update_bounds(geometry.bounds, conductors{j});
+                    end
+                end
+                
             % Parse microstrip stubs (MSTUB components)
             elseif contains(line, 'MSTUB')
                 conductor = parse_qucs_mstub(line);
@@ -92,8 +106,8 @@ function geometry = parse_qucs_layout(qucs_file)
                     geometry.ports(end+1) = port;
                 end
                 
-            % Parse substrate properties (MSUB components)
-            elseif contains(line, 'MSUB')
+            % Parse substrate properties (SUBST components)
+            elseif contains(line, 'SUBST')
                 geometry.substrate = parse_qucs_msub(line);
             end
         end
@@ -129,30 +143,62 @@ end
 
 function conductor = parse_qucs_mlin(line)
     % Parse MLIN (microstrip line) component
+    % Example: MLIN MS25 1 -70 350 -44 -102 0 "Subst1"1"3.104 mm"1"5 mm"1"26.85"0
     conductor = struct();
     
-    % Extract parameters using regex
-    % Example: MLIN Line1 1 100 200 -26 0 "MSUB1" "50 Ω" "10 mm" "0 °" "26.85" "0"
-    tokens = regexp(line, '(\w+)\s+(\w+)\s+(\d+)\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+(\d+)\s+"([^"]*)".*?"([^"]*)".*?"([^"]*)".*?"([^"]*)"', 'tokens');
+    % Split by spaces and quotes to extract parameters
+    parts = strsplit(line);
     
-    if ~isempty(tokens)
-        token = tokens{1};
+    if length(parts) >= 8 && strcmp(parts{1}, 'MLIN')
         conductor.type = 'mline';
-        conductor.name = token{2};
-        conductor.x = str2double(token{4});
-        conductor.y = str2double(token{5});
-        conductor.angle = str2double(token{6});
-        conductor.substrate_ref = token{8};
+        conductor.name = parts{2};
         
-        % Parse width and length with units
-        width_str = token{9};
-        length_str = token{10};
+        % Extract coordinates (positions 4,5) and rotation (position 6)
+        conductor.x = str2double(parts{4});
+        conductor.y = str2double(parts{5});
+        conductor.rotation = str2double(parts{7}); % rotation in degrees
         
-        conductor.width = parse_dimension(width_str);
-        conductor.length = parse_dimension(length_str);
+        % Extract quoted parameters - substrate, width, length
+        quoted_params = {};
+        in_quote = false;
+        current_param = '';
         
-        % Calculate end coordinates
-        angle_rad = conductor.angle * pi / 180;
+        for i = 8:length(parts)
+            part = parts{i};
+            if startsWith(part, '"')
+                in_quote = true;
+                current_param = part(2:end);
+                if endsWith(part, '"') && length(part) > 1
+                    current_param = current_param(1:end-1);
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                end
+            elseif in_quote
+                if endsWith(part, '"')
+                    current_param = [current_param ' ' part(1:end-1)];
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                else
+                    current_param = [current_param ' ' part];
+                end
+            end
+        end
+        
+        if length(quoted_params) >= 3
+            conductor.substrate_ref = quoted_params{1};
+            conductor.width = parse_dimension(quoted_params{2});
+            conductor.length = parse_dimension(quoted_params{3});
+        else
+            % Default values if parsing fails
+            conductor.substrate_ref = 'Subst1';
+            conductor.width = 1.0; % mm
+            conductor.length = 5.0; % mm
+        end
+        
+        % Calculate end coordinates based on rotation
+        angle_rad = conductor.rotation * pi / 180;
         conductor.x2 = conductor.x + conductor.length * cos(angle_rad);
         conductor.y2 = conductor.y + conductor.length * sin(angle_rad);
     else
@@ -160,29 +206,169 @@ function conductor = parse_qucs_mlin(line)
     end
 end
 
+function conductors = parse_qucs_mcoupled(line)
+    % Parse MCOUPLED (coupled microstrip lines) component
+    % Example: MCOUPLED MS6 1 340 100 -6 -141 1 "Subst1"1"3.104 mm"1"30.741 mm"1"9.473 mm"1"26.85"0
+    conductors = {};
+    
+    parts = strsplit(line);
+    
+    if length(parts) >= 8 && strcmp(parts{1}, 'MCOUPLED')
+        % Extract quoted parameters
+        quoted_params = {};
+        in_quote = false;
+        current_param = '';
+        
+        for i = 8:length(parts)
+            part = parts{i};
+            if startsWith(part, '"')
+                in_quote = true;
+                current_param = part(2:end);
+                if endsWith(part, '"') && length(part) > 1
+                    current_param = current_param(1:end-1);
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                end
+            elseif in_quote
+                if endsWith(part, '"')
+                    current_param = [current_param ' ' part(1:end-1)];
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                else
+                    current_param = [current_param ' ' part];
+                end
+            end
+        end
+        
+        if length(quoted_params) >= 4
+            base_name = parts{2};
+            x = str2double(parts{4});
+            y = str2double(parts{5});
+            rotation = str2double(parts{7});
+            
+            substrate_ref = quoted_params{1};
+            width = parse_dimension(quoted_params{2});
+            length = parse_dimension(quoted_params{3});
+            spacing = parse_dimension(quoted_params{4});
+            
+            % Create two coupled conductors
+            angle_rad = rotation * pi / 180;
+            
+            % Conductor 1 (offset by -spacing/2 in perpendicular direction)
+            offset_x1 = -(spacing/2) * sin(angle_rad);
+            offset_y1 = (spacing/2) * cos(angle_rad);
+            
+            conductor1 = struct();
+            conductor1.type = 'mline_coupled';
+            conductor1.name = [base_name '_1'];
+            conductor1.x = x + offset_x1;
+            conductor1.y = y + offset_y1;
+            conductor1.x2 = conductor1.x + length * cos(angle_rad);
+            conductor1.y2 = conductor1.y + length * sin(angle_rad);
+            conductor1.width = width;
+            conductor1.length = length;
+            conductor1.rotation = rotation;
+            conductor1.substrate_ref = substrate_ref;
+            conductor1.coupling_spacing = spacing;
+            
+            % Conductor 2 (offset by +spacing/2 in perpendicular direction)
+            offset_x2 = (spacing/2) * sin(angle_rad);
+            offset_y2 = -(spacing/2) * cos(angle_rad);
+            
+            conductor2 = struct();
+            conductor2.type = 'mline_coupled';
+            conductor2.name = [base_name '_2'];
+            conductor2.x = x + offset_x2;
+            conductor2.y = y + offset_y2;
+            conductor2.x2 = conductor2.x + length * cos(angle_rad);
+            conductor2.y2 = conductor2.y + length * sin(angle_rad);
+            conductor2.width = width;
+            conductor2.length = length;
+            conductor2.rotation = rotation;
+            conductor2.substrate_ref = substrate_ref;
+            conductor2.coupling_spacing = spacing;
+            
+            conductors = {conductor1, conductor2};
+        end
+    end
+end
+
 function conductor = parse_qucs_mstub(line)
     % Parse MSTUB (microstrip stub) component
     conductor = struct();
     
-    % Similar parsing for stubs - implementation would depend on QUCS stub format
-    conductor = []; % Placeholder - implement based on actual QUCS stub format
+    % Similar to MLIN but for stub - placeholder implementation
+    parts = strsplit(line);
+    
+    if length(parts) >= 8 && strcmp(parts{1}, 'MSTUB')
+        conductor.type = 'mstub';
+        conductor.name = parts{2};
+        conductor.x = str2double(parts{4});
+        conductor.y = str2double(parts{5});
+        conductor.rotation = str2double(parts{7});
+        
+        % For now, treat as short line segment
+        conductor.width = 1.0; % Default width
+        conductor.length = 2.0; % Default stub length
+        
+        angle_rad = conductor.rotation * pi / 180;
+        conductor.x2 = conductor.x + conductor.length * cos(angle_rad);
+        conductor.y2 = conductor.y + conductor.length * sin(angle_rad);
+    else
+        conductor = [];
+    end
 end
 
 function port = parse_qucs_port(line)
-    % Parse Pac (port) component
+    % Parse Pac (port) component  
+    % Example: Pac P1 1 -160 410 18 -26 0 "1"1"50 Ω"1"0 dBm"0"1 GHz"0"26.85"0"con_2"0
     port = struct();
     
-    % Extract port parameters
-    % Example: Pac P1 1 -160 410 18 -26 0 "1"1"50 Ω"1"0 dBm"0"1 GHz"0"26.85"0"con_2"0
-    tokens = regexp(line, 'Pac\s+(\w+)\s+(\d+)\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+(\d+)\s+"([^"]*)".*?"([^"]*)"', 'tokens');
+    parts = strsplit(line);
     
-    if ~isempty(tokens)
-        token = tokens{1};
-        port.name = token{1};
-        port.number = str2double(token{8});
-        port.x = str2double(token{3});
-        port.y = str2double(token{4});
-        port.impedance = parse_dimension(token{9});
+    if length(parts) >= 8 && strcmp(parts{1}, 'Pac')
+        port.name = parts{2};
+        port.x = str2double(parts{4});
+        port.y = str2double(parts{5});
+        
+        % Extract quoted parameters
+        quoted_params = {};
+        in_quote = false;
+        current_param = '';
+        
+        for i = 8:length(parts)
+            part = parts{i};
+            if startsWith(part, '"')
+                in_quote = true;
+                current_param = part(2:end);
+                if endsWith(part, '"') && length(part) > 1
+                    current_param = current_param(1:end-1);
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                end
+            elseif in_quote
+                if endsWith(part, '"')
+                    current_param = [current_param ' ' part(1:end-1)];
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                else
+                    current_param = [current_param ' ' part];
+                end
+            end
+        end
+        
+        if length(quoted_params) >= 2
+            port.number = str2double(quoted_params{1});
+            port.impedance = parse_dimension(quoted_params{2});
+        else
+            port.number = 1;
+            port.impedance = 50;
+        end
+        
         port.type = 'lumped';
     else
         port = [];
@@ -190,31 +376,109 @@ function port = parse_qucs_port(line)
 end
 
 function substrate = parse_qucs_msub(line)
-    % Parse MSUB (substrate) component
+    % Parse SUBST (substrate) component
+    % Example: SUBST Subst1 1 730 890 -30 24 0 "9.8"1"1 mm"1"35 µm"1"2e-4"1"1.72e-8"1"0"0"Metal"0"Hammerstad"0"Kirschning"0
     substrate = struct();
     
-    % Extract substrate parameters - implementation depends on QUCS MSUB format
-    % Set defaults for now
-    substrate.er = 4.3;      % Relative permittivity
-    substrate.h = 1.6;       % Height in mm
-    substrate.t = 0.035;     % Copper thickness in mm
-    substrate.tand = 0.02;   % Loss tangent
+    parts = strsplit(line);
+    
+    if length(parts) >= 8 && strcmp(parts{1}, 'SUBST')
+        % Extract quoted parameters
+        quoted_params = {};
+        in_quote = false;
+        current_param = '';
+        
+        for i = 8:length(parts)
+            part = parts{i};
+            if startsWith(part, '"')
+                in_quote = true;
+                current_param = part(2:end);
+                if endsWith(part, '"') && length(part) > 1
+                    current_param = current_param(1:end-1);
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                end
+            elseif in_quote
+                if endsWith(part, '"')
+                    current_param = [current_param ' ' part(1:end-1)];
+                    quoted_params{end+1} = current_param;
+                    in_quote = false;
+                    current_param = '';
+                else
+                    current_param = [current_param ' ' part];
+                end
+            end
+        end
+        
+        if length(quoted_params) >= 4
+            substrate.er = str2double(quoted_params{1});     % Relative permittivity
+            substrate.h = parse_dimension(quoted_params{2});  % Height
+            substrate.t = parse_dimension(quoted_params{3});  % Metal thickness 
+            substrate.tand = str2double(quoted_params{4});    % Loss tangent
+        else
+            % Default FR4 properties
+            substrate.er = 4.3;
+            substrate.h = 1.6;
+            substrate.t = 0.035;
+            substrate.tand = 0.02;
+        end
+        
+        % Ensure reasonable values
+        if substrate.er < 1 || substrate.er > 100
+            substrate.er = 4.3;
+        end
+        if substrate.h <= 0
+            substrate.h = 1.6;
+        end
+        if substrate.t <= 0
+            substrate.t = 0.035;
+        end
+        if substrate.tand < 0 || substrate.tand > 1
+            substrate.tand = 0.02;
+        end
+    else
+        % Default FR4 properties
+        substrate.er = 4.3;
+        substrate.h = 1.6;
+        substrate.t = 0.035;
+        substrate.tand = 0.02;
+    end
 end
 
 function value = parse_dimension(dim_str)
-    % Parse dimension string with units (e.g., "10 mm", "50 Ω")
+    % Parse dimension string with units (e.g., "10 mm", "50 Ω", "35 µm")
+    if isempty(dim_str)
+        value = 0;
+        return;
+    end
+    
+    % Handle different units
     if contains(dim_str, 'mm')
         value = str2double(strrep(dim_str, 'mm', ''));
     elseif contains(dim_str, 'mil')
         value = str2double(strrep(dim_str, 'mil', '')) * 0.0254; % Convert mil to mm
+    elseif contains(dim_str, 'µm') || contains(dim_str, 'um')
+        % Micrometers to mm
+        clean_str = strrep(strrep(dim_str, 'µm', ''), 'um', '');
+        value = str2double(clean_str) / 1000;
     elseif contains(dim_str, 'Ω') || contains(dim_str, 'ohm')
         value = str2double(regexp(dim_str, '\d*\.?\d+', 'match', 'once'));
+    elseif contains(dim_str, 'GHz')
+        value = str2double(strrep(dim_str, 'GHz', '')) * 1e9;
+    elseif contains(dim_str, 'MHz')
+        value = str2double(strrep(dim_str, 'MHz', '')) * 1e6;
+    elseif contains(dim_str, 'e-') || contains(dim_str, 'E-')
+        % Scientific notation
+        value = str2double(dim_str);
     else
+        % Try direct conversion
         value = str2double(dim_str);
     end
     
     if isnan(value)
         value = 0;
+        fprintf('Warning: Could not parse dimension "%s", using 0\n', dim_str);
     end
 end
 
