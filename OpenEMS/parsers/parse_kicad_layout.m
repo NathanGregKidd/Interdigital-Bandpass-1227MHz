@@ -63,8 +63,8 @@ function geometry = parse_kicad_layout(kicad_file)
     end
     
     % Ensure valid bounds
-    if any(isinf(geometry.bounds))
-        fprintf('Warning: Could not determine geometry bounds, using defaults\n');
+    if any(isinf(geometry.bounds)) || geometry.bounds(1) >= geometry.bounds(2) || geometry.bounds(3) >= geometry.bounds(4)
+        fprintf('Warning: Could not determine geometry bounds from KiCad, using defaults\n');
         geometry.bounds = [-10 10 -10 10]; % Default 20x20mm
     end
     

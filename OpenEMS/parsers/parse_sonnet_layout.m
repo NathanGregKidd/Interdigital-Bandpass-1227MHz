@@ -38,6 +38,12 @@ function geometry = parse_sonnet_layout(sonnet_file)
     end
     
     try
+        % Read all content and split into lines
+        content = fread(fid, inf, 'char')';
+        fclose(fid);
+        content = char(content);
+        lines = splitlines(content);
+        
         % State variables for parsing
         in_geo_section = false;
         in_dielectric_section = false;
@@ -48,17 +54,9 @@ function geometry = parse_sonnet_layout(sonnet_file)
         port_count = 0;
         
         % Parse file line by line
-        while ~feof(fid)
-            line = fgetl(fid);
+        for i = 1:length(lines)
+            line = strtrim(lines{i});
             
-            if ~ischar(line)
-                break;
-            end
-            
-            % Remove leading/trailing whitespace
-            line = strtrim(line);
-            
-            % Skip empty lines
             if isempty(line)
                 continue;
             end
@@ -87,9 +85,9 @@ function geometry = parse_sonnet_layout(sonnet_file)
                     % Parse simulation box
                     geometry.bounds = parse_sonnet_box(line);
                     
-                elseif in_metal_section && (startsWith(line, 'POL') || startsWith(line, 'POLY'))
-                    % Parse polygon/conductor
-                    conductor = parse_sonnet_polygon(line, current_metal_level);
+                elseif in_metal_section && startsWith(line, '0')
+                    % Parse polygon/conductor (lines starting with "0 5 0 N")
+                    conductor = parse_sonnet_polygon(line, lines, i, current_metal_level);
                     if ~isempty(conductor)
                         conductor_count = conductor_count + 1;
                         conductor.id = conductor_count;
@@ -126,10 +124,10 @@ function geometry = parse_sonnet_layout(sonnet_file)
             end
         end
         
-        fclose(fid);
-        
     catch ME
-        fclose(fid);
+        if fid ~= -1
+            fclose(fid);
+        end
         rethrow(ME);
     end
     
@@ -197,30 +195,60 @@ function bounds = parse_sonnet_box(line)
     end
 end
 
-function conductor = parse_sonnet_polygon(line, metal_level)
-    % Parse polygon/conductor definition
-    % Example: POL 1 1 4 1 0 0 100 0 100 100 0 100 0 0
+function conductor = parse_sonnet_polygon(line, lines, start_idx, metal_level)
+    % Parse polygon/conductor definition from Sonnet
+    % Polygons in Sonnet can span multiple lines with coordinate lists
     conductor = struct();
     
+    % Look for polygon start pattern: "0 5 0 N ## 1 1 100 100 0 0 0 Y"
     tokens = strsplit(line);
-    if length(tokens) >= 6 && strcmp(tokens{1}, 'POL')
+    if length(tokens) >= 5 && strcmp(tokens{1}, '0')
         conductor.type = 'polygon';
         conductor.metal_level = metal_level;
         
-        num_vertices = str2double(tokens{4});
-        if length(tokens) >= 6 + 2*num_vertices
-            % Extract vertex coordinates
-            vertices = zeros(num_vertices, 2);
-            for i = 1:num_vertices
-                vertices(i, 1) = str2double(tokens{6 + 2*i - 1});
-                vertices(i, 2) = str2double(tokens{6 + 2*i});
+        % Look for TLAYNAM line (layer name) 
+        layer_line_idx = start_idx + 1;
+        if layer_line_idx <= length(lines)
+            layer_line = strtrim(lines{layer_line_idx});
+            if startsWith(layer_line, 'TLAYNAM')
+                parts = strsplit(layer_line);
+                if length(parts) >= 2
+                    conductor.layer_name = parts{2};
+                end
+            end
+        end
+        
+        % Collect coordinate pairs until END
+        vertices = [];
+        current_line = start_idx + 2; % Start after TLAYNAM line
+        
+        while current_line <= length(lines)
+            coord_line = strtrim(lines{current_line});
+            
+            if strcmp(coord_line, 'END')
+                break;
             end
             
+            % Parse coordinate pair
+            coords = str2double(strsplit(coord_line));
+            if length(coords) == 2 && ~any(isnan(coords))
+                vertices(end+1, :) = coords;
+            end
+            
+            current_line = current_line + 1;
+        end
+        
+        if size(vertices, 1) >= 3
             conductor.vertices = vertices;
             
+            % Convert from mils to mm if necessary (Sonnet default is mils)
+            if max(vertices(:)) > 1000 % Assume mils if coordinates > 1000
+                conductor.vertices = conductor.vertices * 0.0254;
+            end
+            
             % Calculate bounding box
-            conductor.bounds = [min(vertices(:,1)) max(vertices(:,1)) ...
-                               min(vertices(:,2)) max(vertices(:,2))];
+            conductor.bounds = [min(conductor.vertices(:,1)) max(conductor.vertices(:,1)) ...
+                               min(conductor.vertices(:,2)) max(conductor.vertices(:,2))];
             
             % Estimate width and length for rectangular conductors
             width = conductor.bounds(4) - conductor.bounds(3);
