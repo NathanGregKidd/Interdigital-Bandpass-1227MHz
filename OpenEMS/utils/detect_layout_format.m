@@ -29,7 +29,7 @@ function format_type = detect_layout_format(layout_file)
                 first_line = fgetl(fid);
                 fclose(fid);
                 
-                if ~contains(first_line, 'QucsStudio') && ~contains(first_line, 'Qucs Schematic')
+                if isempty(strfind(first_line, 'QucsStudio')) && isempty(strfind(first_line, 'Qucs Schematic'))
                     error('File appears to be schematic but not QUCS format');
                 end
             catch ME
@@ -47,7 +47,7 @@ function format_type = detect_layout_format(layout_file)
                 first_line = fgetl(fid);
                 fclose(fid);
                 
-                if ~contains(first_line, 'FTYP SONPROJ') && ~contains(first_line, 'SONNET')
+                if isempty(strfind(first_line, 'FTYP SONPROJ')) && isempty(strfind(first_line, 'SONNET'))
                     warning('File extension is .son but content may not be Sonnet format');
                 end
             catch ME
@@ -65,7 +65,7 @@ function format_type = detect_layout_format(layout_file)
                 first_line = fgetl(fid);
                 fclose(fid);
                 
-                if ~contains(first_line, 'kicad_pcb')
+                if isempty(strfind(first_line, 'kicad_pcb'))
                     error('File appears to be KiCad but not PCB format');
                 end
             catch ME
@@ -93,11 +93,11 @@ function format_type = detect_layout_format(layout_file)
                 fclose(fid);
                 
                 % Check content patterns
-                if contains(content, 'QucsStudio') || contains(content, 'Qucs Schematic')
+                if ~isempty(strfind(content, 'QucsStudio')) || ~isempty(strfind(content, 'Qucs Schematic'))
                     format_type = 'qucs';
-                elseif contains(content, 'FTYP SONPROJ') || contains(content, 'SONNET')
+                elseif ~isempty(strfind(content, 'FTYP SONPROJ')) || ~isempty(strfind(content, 'SONNET'))
                     format_type = 'sonnet';
-                elseif contains(content, 'kicad_pcb')
+                elseif ~isempty(strfind(content, 'kicad_pcb'))
                     format_type = 'kicad';
                 else
                     error('Unknown file format: %s', layout_file);

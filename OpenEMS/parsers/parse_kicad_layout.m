@@ -100,10 +100,10 @@ function geometry = parse_kicad_content(content)
         end
         
         % Parse stackup information
-        if contains(line, '(stackup')
+        if ~isempty(strfind(line, '(stackup'))
             in_stackup = true;
             continue;
-        elseif in_stackup && contains(line, ')')
+        elseif in_stackup && ~isempty(strfind(line, ')'))
             in_stackup = false;
             continue;
         end
@@ -113,12 +113,12 @@ function geometry = parse_kicad_content(content)
         end
         
         % Parse copper layers
-        if contains(line, '(layers')
+        if ~isempty(strfind(line, '(layers'))
             % Parse layer definitions - not fully implemented
         end
         
         % Parse segments (traces)
-        if contains(line, '(segment')
+        if ~isempty(strfind(line, '(segment'))
             conductor = parse_kicad_segment(line);
             if ~isempty(conductor)
                 conductor_count = conductor_count + 1;
@@ -129,7 +129,7 @@ function geometry = parse_kicad_content(content)
         end
         
         % Parse vias
-        if contains(line, '(via')
+        if ~isempty(strfind(line, '(via'))
             conductor = parse_kicad_via(line);
             if ~isempty(conductor)
                 conductor_count = conductor_count + 1;
@@ -140,7 +140,7 @@ function geometry = parse_kicad_content(content)
         end
         
         % Parse polygons/zones
-        if contains(line, '(polygon') || contains(line, '(zone')
+        if ~isempty(strfind(line, '(polygon')) || ~isempty(strfind(line, '(zone'))
             conductor = parse_kicad_polygon(line, lines, i);
             if ~isempty(conductor)
                 conductor_count = conductor_count + 1;
@@ -151,7 +151,7 @@ function geometry = parse_kicad_content(content)
         end
         
         % Parse footprints (which may contain connectors/ports)
-        if contains(line, '(footprint') && (contains(line, 'Connector') || contains(line, 'SMA'))
+        if ~isempty(strfind(line, '(footprint')) && (~isempty(strfind(line, 'Connector')) || ~isempty(strfind(line, 'SMA')))
             port = parse_kicad_footprint_port(line, lines, i);
             if ~isempty(port)
                 port_count = port_count + 1;
@@ -164,13 +164,13 @@ end
 
 function substrate = parse_kicad_stackup(line, substrate)
     % Parse stackup information
-    if contains(line, 'dielectric')
+    if ~isempty(strfind(line, 'dielectric'))
         % Extract dielectric constant
         er_match = regexp(line, 'dielectric\s+([\d.]+)', 'tokens');
         if ~isempty(er_match)
             substrate.er = str2double(er_match{1}{1});
         end
-    elseif contains(line, 'thickness')
+    elseif ~isempty(strfind(line, 'thickness'))
         % Extract thickness
         thickness_match = regexp(line, 'thickness\s+([\d.]+)', 'tokens');
         if ~isempty(thickness_match)

@@ -102,7 +102,7 @@ function geometry = parse_sonnet_layout(sonnet_file)
                     % Parse subdivisions (meshing info)
                     geometry.mesh_info = parse_sonnet_subdivision(line);
                     
-                elseif contains(line, 'BMET')
+                elseif ~isempty(strfind(line, 'BMET'))
                     % Bottom metal - end of current metal level
                     in_metal_section = false;
                 end
@@ -114,7 +114,7 @@ function geometry = parse_sonnet_layout(sonnet_file)
             end
             
             % Parse ports
-            if contains(line, 'PORT') || contains(line, 'TPORT')
+            if ~isempty(strfind(line, 'PORT')) || ~isempty(strfind(line, 'TPORT'))
                 port = parse_sonnet_port(line);
                 if ~isempty(port)
                     port_count = port_count + 1;
@@ -156,9 +156,9 @@ function geometry = parse_sonnet_dimensions(line, geometry)
     % Parse DIM line to get units
     % Example: DIM
     geometry.units = 'MIL'; % Default Sonnet unit
-    if contains(line, 'MM')
+    if ~isempty(strfind(line, 'MM'))
         geometry.units = 'MM';
-    elseif contains(line, 'MIL')
+    elseif ~isempty(strfind(line, 'MIL'))
         geometry.units = 'MIL';
     end
 end

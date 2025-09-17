@@ -60,7 +60,7 @@ function geometry = parse_qucs_layout(qucs_file)
             end
             
             % Parse microstrip lines (MLIN components)
-            if contains(line, 'MLIN')
+            if ~isempty(strfind(line, 'MLIN'))
                 conductor = parse_qucs_mlin(line);
                 if ~isempty(conductor)
                     conductor_count = conductor_count + 1;
@@ -72,7 +72,7 @@ function geometry = parse_qucs_layout(qucs_file)
                 end
                 
             % Parse coupled microstrip lines (MCOUPLED components)
-            elseif contains(line, 'MCOUPLED')
+            elseif ~isempty(strfind(line, 'MCOUPLED'))
                 conductors = parse_qucs_mcoupled(line);
                 for j = 1:length(conductors)
                     if ~isempty(conductors{j})
@@ -86,7 +86,7 @@ function geometry = parse_qucs_layout(qucs_file)
                 end
                 
             % Parse microstrip stubs (MSTUB components)
-            elseif contains(line, 'MSTUB')
+            elseif ~isempty(strfind(line, 'MSTUB'))
                 conductor = parse_qucs_mstub(line);
                 if ~isempty(conductor)
                     conductor_count = conductor_count + 1;
@@ -98,7 +98,7 @@ function geometry = parse_qucs_layout(qucs_file)
                 end
                 
             % Parse ports (Pac components)
-            elseif contains(line, 'Pac')
+            elseif ~isempty(strfind(line, 'Pac'))
                 port = parse_qucs_port(line);
                 if ~isempty(port)
                     port_count = port_count + 1;
@@ -107,7 +107,7 @@ function geometry = parse_qucs_layout(qucs_file)
                 end
                 
             % Parse substrate properties (SUBST components)
-            elseif contains(line, 'SUBST')
+            elseif ~isempty(strfind(line, 'SUBST'))
                 geometry.substrate = parse_qucs_msub(line);
             end
         end
@@ -454,21 +454,21 @@ function value = parse_dimension(dim_str)
     end
     
     % Handle different units
-    if contains(dim_str, 'mm')
+    if ~isempty(strfind(dim_str, 'mm'))
         value = str2double(strrep(dim_str, 'mm', ''));
-    elseif contains(dim_str, 'mil')
+    elseif ~isempty(strfind(dim_str, 'mil'))
         value = str2double(strrep(dim_str, 'mil', '')) * 0.0254; % Convert mil to mm
-    elseif contains(dim_str, 'µm') || contains(dim_str, 'um')
+    elseif ~isempty(strfind(dim_str, 'µm')) || ~isempty(strfind(dim_str, 'um'))
         % Micrometers to mm
         clean_str = strrep(strrep(dim_str, 'µm', ''), 'um', '');
         value = str2double(clean_str) / 1000;
-    elseif contains(dim_str, 'Ω') || contains(dim_str, 'ohm')
+    elseif ~isempty(strfind(dim_str, 'Ω')) || ~isempty(strfind(dim_str, 'ohm'))
         value = str2double(regexp(dim_str, '\d*\.?\d+', 'match', 'once'));
-    elseif contains(dim_str, 'GHz')
+    elseif ~isempty(strfind(dim_str, 'GHz'))
         value = str2double(strrep(dim_str, 'GHz', '')) * 1e9;
-    elseif contains(dim_str, 'MHz')
+    elseif ~isempty(strfind(dim_str, 'MHz'))
         value = str2double(strrep(dim_str, 'MHz', '')) * 1e6;
-    elseif contains(dim_str, 'e-') || contains(dim_str, 'E-')
+    elseif ~isempty(strfind(dim_str, 'e-')) || ~isempty(strfind(dim_str, 'E-'))
         % Scientific notation
         value = str2double(dim_str);
     else
